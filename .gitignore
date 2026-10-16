@@ -1,0 +1,32 @@
+# Maven build output
+target/
+
+# Compiled files
+*.class
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+nbproject/
+
+# Logs and generated runtime files
+*.log
+logs/
+
+# Local database and saved agents (each person generates their own)
+*.db
+*.sqlite
+*.ser
+
+# Secrets - never commit these
+.env
+*.pem
+secrets.properties
+
+# OS files
+.DS_Store
+Thumbs.db
