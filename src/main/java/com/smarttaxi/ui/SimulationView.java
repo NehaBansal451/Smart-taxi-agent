@@ -4,6 +4,7 @@ import java.util.Random;
 import java.util.function.Supplier;
 
 import com.smarttaxi.agent.Agent;
+import com.smarttaxi.agent.QLearningAgent;
 import com.smarttaxi.agent.RandomAgent;
 import com.smarttaxi.env.GridWorld;
 import com.smarttaxi.exception.InvalidMoveException;
@@ -16,6 +17,7 @@ import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
@@ -42,6 +44,7 @@ public class SimulationView extends BorderPane {
     private final Button newTripButton = new Button("New trip");
     private final Button stepButton = new Button("Step");
     private final Button runButton = new Button("Run trip");
+    private final CheckBox heatmapBox = new CheckBox("Show heatmap");
     private Timeline timeline;
 
     /**
@@ -60,9 +63,10 @@ public class SimulationView extends BorderPane {
         newTripButton.setOnAction(e -> startTrip());
         stepButton.setOnAction(e -> onStep());
         runButton.setOnAction(e -> onRun());
+        heatmapBox.setOnAction(e -> updateHeatmap(env.getState()));
 
         VBox controls = new VBox(10, new Label("Agent"), agentChoice, newTripButton, stepButton, runButton,
-                new Label("Delay per step (ms)"), delay, info);
+                new Label("Delay per step (ms)"), delay, heatmapBox, info);
         controls.setPadding(new Insets(10));
         setCenter(grid);
         setRight(controls);
@@ -117,6 +121,19 @@ public class SimulationView extends BorderPane {
         grid.setTaxi(state.getTaxi());
         grid.setPassenger(state.getPassenger().orElse(null));
         grid.setDestination(state.getDestination());
+        updateHeatmap(state);
+    }
+
+    /** Repaints or clears the heatmap for the situation of the current trip. */
+    private void updateHeatmap(State state) {
+        grid.clearOverlay();
+        if (!heatmapBox.isSelected()) {
+            return;
+        }
+        Agent agent = learnedAgent.get();
+        if (agent instanceof QLearningAgent q) {
+            HeatmapOverlay.apply(grid, env.getMap(), q.getQTable(), state);
+        }
     }
 
     private void stopTimeline() {
