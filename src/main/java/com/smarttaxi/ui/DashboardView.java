@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import com.smarttaxi.agent.EvaluationSummary;
@@ -54,6 +55,8 @@ public class DashboardView extends BorderPane {
     private final TableView<EvaluationSummary> table = new TableView<>();
     private QLearningAgent agent;
     private TrainingService service;
+    private final Button saveRunButton = new Button("Save run");
+    private volatile List<EpisodeResult> lastResults = new ArrayList<>();
 
     public DashboardView() {
         resetAgent();
@@ -69,7 +72,7 @@ public class DashboardView extends BorderPane {
         trainButton.setOnAction(e -> onTrain());
         evaluateButton.setOnAction(e -> onEvaluate());
         resetButton.setOnAction(e -> onReset());
-        HBox controls = new HBox(10, new Label("Episodes:"), episodesField, trainButton, evaluateButton, resetButton, progress);
+        HBox controls = new HBox(10, new Label("Episodes:"), episodesField, trainButton, evaluateButton, resetButton, saveRunButton, progress);
         controls.setPadding(new Insets(10));
         setTop(controls);
         setCenter(chart);
@@ -77,6 +80,27 @@ public class DashboardView extends BorderPane {
         VBox bottom = new VBox(6, table, status);
         bottom.setPadding(new Insets(10));
         setBottom(bottom);
+    }
+
+    /** The agent that is currently being trained. */
+    public QLearningAgent getAgent() {
+        return agent;
+    }
+
+    /** The city this dashboard trains on. */
+    public CityMap getMap() {
+        return map;
+    }
+
+    /** Sets what happens when Save run is pressed; the saver receives the results of the last training. */
+    public void setRunSaver(Consumer<List<EpisodeResult>> saver) {
+        saveRunButton.setOnAction(e -> {
+            if (lastResults == null || lastResults.isEmpty()) {
+                showError("Train the agent first.");
+                return;
+            }
+            saver.accept(lastResults);
+        });
     }
 
     private void resetAgent() {
@@ -128,7 +152,7 @@ public class DashboardView extends BorderPane {
             @Override
             protected Void call() throws Exception {
                 List<EpisodeResult> batch = new ArrayList<>();
-                service.train(episodes, r -> {
+                lastResults = service.train(episodes, r -> {
                     batch.add(r);
                     updateProgress(r.episodeNo() - firstEpisode, episodes);
                     if (batch.size() == REFRESH_EVERY) {
@@ -176,6 +200,7 @@ public class DashboardView extends BorderPane {
     private void onReset() {
         resetAgent();
         rewardSeries.getData().clear();
+        lastResults = new ArrayList<>();
         table.getItems().clear();
         progress.setProgress(0);
         status.setText("Untrained agent");
