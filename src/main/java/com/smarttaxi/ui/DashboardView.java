@@ -19,6 +19,7 @@ import com.smarttaxi.fare.StandardFare;
 import com.smarttaxi.map.CityMap;
 import com.smarttaxi.service.EpisodeResult;
 import com.smarttaxi.service.TrainingService;
+import com.smarttaxi.storage.AgentSnapshot;
 import com.smarttaxi.util.Validator;
 
 import javafx.application.Platform;
@@ -36,50 +37,83 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
-/** Training dashboard: start training, watch the reward curve, compare Q-learning with Random. */
+/**
+ * Training dashboard: start, pause and resume training, watch reward, steps, epsilon and profit,
+ * and compare Q-learning with Random.
+ */
 public class DashboardView extends BorderPane {
 
     private static final int REFRESH_EVERY = 20;
+    private static final int PAUSE_POLL_MS = 50;
+    private static final int EVALUATION_EPISODES = 200;
 
     private final CityMap map = CityMap.defaultMap();
     private final TextField episodesField = new TextField("5000");
     private final Button trainButton = new Button("Train");
+    private final Button pauseButton = new Button("Pause");
     private final Button evaluateButton = new Button("Evaluate");
     private final Button resetButton = new Button("Reset");
+    private final Button saveRunButton = new Button("Save run");
     private final ProgressBar progress = new ProgressBar(0);
     private final Label status = new Label("Untrained agent");
     private final XYChart.Series<Number, Number> rewardSeries = new XYChart.Series<>();
+    private final XYChart.Series<Number, Number> stepsSeries = new XYChart.Series<>();
+    private final XYChart.Series<Number, Number> epsilonSeries = new XYChart.Series<>();
+    private final XYChart.Series<Number, Number> profitSeries = new XYChart.Series<>();
     private final TableView<EvaluationSummary> table = new TableView<>();
+    private volatile boolean paused;
+    private volatile List<EpisodeResult> lastResults = new ArrayList<>();
     private QLearningAgent agent;
     private TrainingService service;
-    private final Button saveRunButton = new Button("Save run");
-    private volatile List<EpisodeResult> lastResults = new ArrayList<>();
 
+    /** Builds the dashboard with an untrained agent on the default city. */
     public DashboardView() {
         resetAgent();
-        rewardSeries.setName("Average reward per 20 episodes");
-        NumberAxis x = new NumberAxis();
-        x.setLabel("Episode");
-        NumberAxis y = new NumberAxis();
-        y.setLabel("Reward");
-        LineChart<Number, Number> chart = new LineChart<>(x, y);
-        chart.setAnimated(false);
-        chart.setCreateSymbols(false);
-        chart.getData().add(rewardSeries);
+        GridPane charts = new GridPane();
+        charts.setHgap(8);
+        charts.setVgap(8);
+        addChart(charts, "Average reward", "Reward", rewardSeries, 0, 0);
+        addChart(charts, "Average steps", "Steps", stepsSeries, 1, 0);
+        addChart(charts, "Epsilon", "Epsilon", epsilonSeries, 0, 1);
+        addChart(charts, "Average profit", "Profit", profitSeries, 1, 1);
+
         trainButton.setOnAction(e -> onTrain());
+        pauseButton.setOnAction(e -> onPause());
+        pauseButton.setDisable(true);
         evaluateButton.setOnAction(e -> onEvaluate());
         resetButton.setOnAction(e -> onReset());
-        HBox controls = new HBox(10, new Label("Episodes:"), episodesField, trainButton, evaluateButton, resetButton, saveRunButton, progress);
+        HBox controls = new HBox(10, new Label("Episodes:"), episodesField, trainButton, pauseButton,
+                evaluateButton, resetButton, saveRunButton, progress);
         controls.setPadding(new Insets(10));
         setTop(controls);
-        setCenter(chart);
+        setCenter(charts);
         buildTable();
         VBox bottom = new VBox(6, table, status);
         bottom.setPadding(new Insets(10));
         setBottom(bottom);
+    }
+
+    private void addChart(GridPane grid, String title, String yLabel, XYChart.Series<Number, Number> series,
+                          int col, int row) {
+        NumberAxis x = new NumberAxis();
+        x.setLabel("Episode");
+        NumberAxis y = new NumberAxis();
+        y.setLabel(yLabel);
+        y.setForceZeroInRange(false);
+        LineChart<Number, Number> chart = new LineChart<>(x, y);
+        chart.setTitle(title);
+        chart.setAnimated(false);
+        chart.setCreateSymbols(false);
+        chart.setLegendVisible(false);
+        chart.getData().add(series);
+        GridPane.setHgrow(chart, Priority.ALWAYS);
+        GridPane.setVgrow(chart, Priority.ALWAYS);
+        grid.add(chart, col, row);
     }
 
     /** The agent that is currently being trained. */
@@ -103,8 +137,21 @@ public class DashboardView extends BorderPane {
         });
     }
 
+    /** Replaces the current agent with one restored from a saved snapshot. */
+    public void installSnapshot(AgentSnapshot snapshot) {
+        agent = new QLearningAgent(new Random(), snapshot.getQTable(), snapshot.getAlpha(), snapshot.getGamma(),
+                snapshot.getEpsilon(), 0.05, 0.999);
+        buildService();
+        clearCharts();
+        status.setText("Loaded agent, epsilon " + String.format("%.3f", snapshot.getEpsilon()));
+    }
+
     private void resetAgent() {
         agent = new QLearningAgent(new Random(), 0.1, 0.99, 1.0, 0.05, 0.999);
+        buildService();
+    }
+
+    private void buildService() {
         FareCalculator fare = new StandardFare();
         try {
             service = new TrainingService(new GridWorld(map, new Random()), agent, fare, new AppConfig(new Properties()));
@@ -137,21 +184,28 @@ public class DashboardView extends BorderPane {
         }
         final int episodes = parsed;
         final int firstEpisode = service.getEpisodeCounter();
+        paused = false;
         setBusy(true);
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() throws Exception {
                 List<EpisodeResult> batch = new ArrayList<>();
                 lastResults = service.train(episodes, r -> {
+                    waitWhilePaused();
                     batch.add(r);
                     updateProgress(r.episodeNo() - firstEpisode, episodes);
                     if (batch.size() == REFRESH_EVERY) {
-                        double avg = batch.stream().mapToDouble(EpisodeResult::totalReward).average().orElse(0);
+                        double reward = batch.stream().mapToDouble(EpisodeResult::totalReward).average().orElse(0);
+                        double steps = batch.stream().mapToInt(EpisodeResult::steps).average().orElse(0);
+                        double profit = batch.stream().mapToDouble(EpisodeResult::profit).average().orElse(0);
                         int no = r.episodeNo();
                         double eps = r.epsilon();
                         batch.clear();
                         Platform.runLater(() -> {
-                            rewardSeries.getData().add(new XYChart.Data<>(no, avg));
+                            rewardSeries.getData().add(new XYChart.Data<>(no, reward));
+                            stepsSeries.getData().add(new XYChart.Data<>(no, steps));
+                            epsilonSeries.getData().add(new XYChart.Data<>(no, eps));
+                            profitSeries.getData().add(new XYChart.Data<>(no, profit));
                             status.setText("Episode " + no + ", epsilon " + String.format("%.3f", eps));
                         });
                     }
@@ -170,18 +224,44 @@ public class DashboardView extends BorderPane {
         thread.start();
     }
 
+    /** Called on the training thread after each episode; blocks while the user has paused. */
+    private void waitWhilePaused() {
+        while (paused) {
+            try {
+                Thread.sleep(PAUSE_POLL_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+    }
+
+    private void onPause() {
+        paused = !paused;
+        pauseButton.setText(paused ? "Resume" : "Pause");
+        status.setText(paused ? "Paused" : "Resumed");
+    }
+
     private void finishTraining() {
+        paused = false;
+        pauseButton.setText("Pause");
         progress.progressProperty().unbind();
         progress.setProgress(1);
         setBusy(false);
+        double totalProfit = 0;
+        for (EpisodeResult r : lastResults) {
+            totalProfit += r.profit();
+        }
+        status.setText("Trained " + lastResults.size() + " episodes, total profit " + String.format("%.2f", totalProfit));
     }
 
     private void onEvaluate() {
         try {
-            EvaluationSummary learned = Evaluator.evaluate(new GridWorld(map, new Random()), agent, 200);
-            EvaluationSummary random = Evaluator.evaluate(new GridWorld(map, new Random()), new RandomAgent(new Random()), 200);
+            EvaluationSummary learned = Evaluator.evaluate(new GridWorld(map, new Random()), agent, EVALUATION_EPISODES);
+            EvaluationSummary random = Evaluator.evaluate(new GridWorld(map, new Random()),
+                    new RandomAgent(new Random()), EVALUATION_EPISODES);
             table.getItems().setAll(random, learned);
-            status.setText("Evaluated 200 episodes per agent");
+            status.setText("Evaluated " + EVALUATION_EPISODES + " episodes per agent");
         } catch (Exception e) {
             showError(e.getMessage());
         }
@@ -189,17 +269,26 @@ public class DashboardView extends BorderPane {
 
     private void onReset() {
         resetAgent();
-        rewardSeries.getData().clear();
+        clearCharts();
         lastResults = new ArrayList<>();
         table.getItems().clear();
         progress.setProgress(0);
         status.setText("Untrained agent");
     }
 
+    private void clearCharts() {
+        rewardSeries.getData().clear();
+        stepsSeries.getData().clear();
+        epsilonSeries.getData().clear();
+        profitSeries.getData().clear();
+    }
+
     private void setBusy(boolean busy) {
         trainButton.setDisable(busy);
         evaluateButton.setDisable(busy);
         resetButton.setDisable(busy);
+        saveRunButton.setDisable(busy);
+        pauseButton.setDisable(!busy);
     }
 
     private void showError(String message) {
