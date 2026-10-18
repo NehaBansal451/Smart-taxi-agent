@@ -1,6 +1,7 @@
 package com.smarttaxi.agent;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -55,5 +56,34 @@ public class QTable implements Serializable {
 
     public int size() {
         return values.size();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof QTable)) {
+            return false;
+        }
+        QTable other = (QTable) o;
+        if (values.size() != other.values.size()) {
+            return false;
+        }
+        for (Map.Entry<State, double[]> e : values.entrySet()) {
+            if (!Arrays.equals(e.getValue(), other.values.get(e.getKey()))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int h = 0;
+        for (Map.Entry<State, double[]> e : values.entrySet()) {
+            h += e.getKey().hashCode() ^ Arrays.hashCode(e.getValue());
+        }
+        return h;
     }
 }
