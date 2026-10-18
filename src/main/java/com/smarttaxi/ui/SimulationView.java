@@ -5,11 +5,13 @@ import java.util.function.Supplier;
 
 import com.smarttaxi.agent.Agent;
 import com.smarttaxi.agent.QLearningAgent;
+import com.smarttaxi.agent.QTable;
 import com.smarttaxi.agent.RandomAgent;
 import com.smarttaxi.env.GridWorld;
 import com.smarttaxi.env.StepResult;
 import com.smarttaxi.map.CityMap;
 import com.smarttaxi.model.Action;
+import com.smarttaxi.model.Position;
 import com.smarttaxi.model.State;
 
 import javafx.animation.KeyFrame;
@@ -18,6 +20,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
@@ -37,6 +40,7 @@ public class SimulationView extends BorderPane {
     private final Button stepButton = new Button("Step");
     private final Button runButton = new Button("Run trip");
     private final Slider speed = new Slider(50, 800, 300);
+    private final CheckBox heatToggle = new CheckBox("Show heatmap");
     private final Label info = new Label("Press New trip");
     private Timeline timeline;
     private State state;
@@ -55,8 +59,9 @@ public class SimulationView extends BorderPane {
         runButton.setOnAction(e -> runTrip());
         stepButton.setDisable(true);
         runButton.setDisable(true);
+        heatToggle.setOnAction(e -> updateHeat());
         info.setWrapText(true);
-        VBox panel = new VBox(12, new Label("Agent"), agentChoice, newTripButton, stepButton, runButton, new Label("Delay per move (ms)"), speed, info);
+        VBox panel = new VBox(12, new Label("Agent"), agentChoice, heatToggle, newTripButton, stepButton, runButton, new Label("Delay per move (ms)"), speed, info);
         panel.setPadding(new Insets(20));
         panel.setPrefWidth(240);
         setCenter(grid);
@@ -78,6 +83,37 @@ public class SimulationView extends BorderPane {
 
     private void showState() {
         grid.show(state.getTaxi(), state.getPassenger().orElse(null), state.getDestination());
+        updateHeat();
+    }
+
+    private void updateHeat() {
+        if (!heatToggle.isSelected() || state == null) {
+            grid.setHeat(null, null);
+            return;
+        }
+        QTable table = agentSource.get().getQTable();
+        int n = env.getMap().getSize();
+        double[][] values = new double[n][n];
+        String[][] arrows = new String[n][n];
+        for (int r = 0; r < n; r++) {
+            for (int c = 0; c < n; c++) {
+                State s = new State(new Position(r, c), state.getPassenger(), state.getDestination());
+                values[r][c] = table.getMaxValue(s);
+                arrows[r][c] = arrow(table.getBestAction(s));
+            }
+        }
+        grid.setHeat(values, arrows);
+    }
+
+    private static String arrow(Action a) {
+        switch (a) {
+            case SOUTH: return "\u2193";
+            case NORTH: return "\u2191";
+            case EAST: return "\u2192";
+            case WEST: return "\u2190";
+            case PICKUP: return "PK";
+            default: return "DR";
+        }
     }
 
     private Action choose() {
@@ -131,3 +167,4 @@ public class SimulationView extends BorderPane {
         }
     }
 }
+

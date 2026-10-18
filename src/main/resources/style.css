@@ -38,3 +38,8 @@
 .tab:selected { -fx-background-color: #2a2112; }
 .tab .tab-label { -fx-text-fill: #d6d6d6; }
 .tab:selected .tab-label { -fx-text-fill: #f59e0b; }
+.check-box { -fx-text-fill: #d6d6d6; }
+.check-box .text { -fx-fill: #d6d6d6; }
+.check-box .box { -fx-background-color: #141414; -fx-border-color: #3a3a3a; -fx-border-radius: 4; -fx-background-radius: 4; }
+.check-box:selected .box { -fx-background-color: #f59e0b; -fx-border-color: #f59e0b; }
+.check-box:selected .mark { -fx-background-color: #0a0a0a; }
