@@ -1,6 +1,5 @@
 package com.smarttaxi.ui;
 
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -16,6 +15,7 @@ import com.smarttaxi.config.AppConfig;
 import com.smarttaxi.env.GridWorld;
 import com.smarttaxi.exception.InvalidConfigException;
 import com.smarttaxi.fare.FareCalculator;
+import com.smarttaxi.fare.StandardFare;
 import com.smarttaxi.map.CityMap;
 import com.smarttaxi.service.EpisodeResult;
 import com.smarttaxi.service.TrainingService;
@@ -105,17 +105,7 @@ public class DashboardView extends BorderPane {
 
     private void resetAgent() {
         agent = new QLearningAgent(new Random(), 0.1, 0.99, 1.0, 0.05, 0.999);
-        FareCalculator fare = new FareCalculator() {
-            @Override
-            public double calculateFare(int distance, LocalTime time) {
-                return 5 + 2 * distance;
-            }
-
-            @Override
-            public double calculateCost(int steps) {
-                return 0.5 * steps;
-            }
-        };
+        FareCalculator fare = new StandardFare();
         try {
             service = new TrainingService(new GridWorld(map, new Random()), agent, fare, new AppConfig(new Properties()));
         } catch (InvalidConfigException e) {
