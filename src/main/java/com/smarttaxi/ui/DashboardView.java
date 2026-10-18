@@ -79,6 +79,14 @@ public class DashboardView extends BorderPane {
         setBottom(bottom);
     }
 
+    public CityMap getMap() {
+        return map;
+    }
+
+    public QLearningAgent getAgent() {
+        return agent;
+    }
+
     private void resetAgent() {
         agent = new QLearningAgent(new Random(), 0.1, 0.99, 1.0, 0.05, 0.999);
         FareCalculator fare = new FareCalculator() {
@@ -191,3 +199,4 @@ public class DashboardView extends BorderPane {
         new Alert(Alert.AlertType.ERROR, message).showAndWait();
     }
 }
+

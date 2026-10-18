@@ -1,6 +1,6 @@
 package com.smarttaxi;
 
-import com.smarttaxi.ui.DashboardView;
+import com.smarttaxi.ui.MainView;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -11,7 +11,7 @@ public class App extends Application {
     @Override
     public void start(Stage stage) {
         stage.setTitle("Smart Taxi Agent");
-        Scene scene = new Scene(new DashboardView(), 1000, 700);
+        Scene scene = new Scene(new MainView(), 1000, 700);
         scene.getStylesheets().add(App.class.getResource("/style.css").toExternalForm());
         stage.setScene(scene);
         stage.show();
