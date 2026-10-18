@@ -1,0 +1,28 @@
+.root { -fx-background-color: #0a0a0a; -fx-font-family: "Segoe UI"; -fx-font-size: 14px; }
+.label { -fx-text-fill: #d6d6d6; }
+.button { -fx-background-color: transparent; -fx-border-color: #3a3a3a; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: #f5f5f5; -fx-padding: 8 18 8 18; -fx-cursor: hand; }
+.button:hover { -fx-background-color: #1c1c1c; -fx-border-color: #f59e0b; }
+.button.primary { -fx-background-color: #ffffff; -fx-text-fill: #0a0a0a; -fx-font-weight: bold; -fx-border-color: #ffffff; }
+.button.primary:hover { -fx-background-color: #fde6c4; }
+.button:disabled { -fx-opacity: 0.4; }
+.text-field { -fx-background-color: #141414; -fx-border-color: #2f2f2f; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: #ffffff; -fx-padding: 8 12 8 12; }
+.text-field:focused { -fx-border-color: #f59e0b; }
+.progress-bar > .track { -fx-background-color: #1c1c1c; -fx-background-radius: 6; }
+.progress-bar > .bar { -fx-background-color: #f59e0b; -fx-background-radius: 6; }
+.chart-plot-background { -fx-background-color: #0f0f0f; }
+.chart-vertical-grid-lines { -fx-stroke: #1f1f1f; }
+.chart-horizontal-grid-lines { -fx-stroke: #1f1f1f; }
+.axis { -fx-tick-label-fill: #9a9a9a; }
+.axis-label { -fx-text-fill: #9a9a9a; }
+.chart-series-line { -fx-stroke: #f59e0b; -fx-stroke-width: 2.5px; }
+.chart-legend { -fx-background-color: #141414; -fx-background-radius: 20; }
+.chart-legend-item { -fx-text-fill: #d6d6d6; }
+.chart-legend-item-symbol { -fx-background-color: #f59e0b; }
+.table-view { -fx-background-color: #141414; -fx-border-color: #2a2a2a; -fx-border-radius: 12; -fx-background-radius: 12; }
+.table-view .column-header-background { -fx-background-color: #1a1a1a; }
+.table-view .column-header, .table-view .filler { -fx-background-color: #1a1a1a; -fx-border-color: #2a2a2a; }
+.table-view .column-header .label { -fx-text-fill: #fde6c4; -fx-font-weight: bold; }
+.table-row-cell { -fx-background-color: #141414; }
+.table-row-cell:odd { -fx-background-color: #181818; }
+.table-cell { -fx-text-fill: #f5f5f5; }
+.placeholder .label { -fx-text-fill: #6b6b6b; }

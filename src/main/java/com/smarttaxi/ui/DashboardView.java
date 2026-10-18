@@ -66,7 +66,7 @@ public class DashboardView extends BorderPane {
         chart.setAnimated(false);
         chart.setCreateSymbols(false);
         chart.getData().add(rewardSeries);
-        trainButton.setOnAction(e -> onTrain());
+        trainButton.getStyleClass().add("primary"); trainButton.setOnAction(e -> onTrain());
         evaluateButton.setOnAction(e -> onEvaluate());
         resetButton.setOnAction(e -> onReset());
         HBox controls = new HBox(10, new Label("Episodes:"), episodesField, trainButton, evaluateButton, resetButton, progress);
