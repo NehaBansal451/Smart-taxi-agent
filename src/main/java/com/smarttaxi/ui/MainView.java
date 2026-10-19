@@ -46,7 +46,7 @@ public class MainView extends TabPane {
         Tab simulationTab = new Tab("Simulation", simulation);
         Tab dashboardTab = new Tab("Training Dashboard", dashboard);
         Tab historyTab = new Tab("History", historyView);
-        getTabs().addAll(simulationTab, dashboardTab, historyTab);
+        Tab mapTab = new Tab("Map Editor", new MapEditorView(dashboard.getMap(), null)); getTabs().addAll(simulationTab, dashboardTab, historyTab, mapTab);
         setTabClosingPolicy(TabClosingPolicy.UNAVAILABLE);
         getSelectionModel().selectedItemProperty().addListener((o, oldTab, newTab) -> {
             if (newTab == historyTab) {
