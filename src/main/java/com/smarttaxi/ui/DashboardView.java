@@ -1,5 +1,6 @@
 package com.smarttaxi.ui;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -18,8 +19,10 @@ import com.smarttaxi.fare.FareCalculator;
 import com.smarttaxi.fare.StandardFare;
 import com.smarttaxi.map.CityMap;
 import com.smarttaxi.service.EpisodeResult;
+import com.smarttaxi.exception.StorageException;
 import com.smarttaxi.service.TrainingService;
 import com.smarttaxi.storage.AgentSnapshot;
+import com.smarttaxi.storage.AgentStorage;
 import com.smarttaxi.util.Validator;
 
 import javafx.application.Platform;
@@ -41,6 +44,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 
 /**
  * Training dashboard: start, pause and resume training, watch reward, steps, epsilon and profit,
@@ -52,13 +56,15 @@ public class DashboardView extends BorderPane {
     private static final int PAUSE_POLL_MS = 50;
     private static final int EVALUATION_EPISODES = 200;
 
-    private final CityMap map = CityMap.defaultMap();
+    private CityMap map = CityMap.defaultMap();
     private final TextField episodesField = new TextField("5000");
     private final Button trainButton = new Button("Train");
     private final Button pauseButton = new Button("Pause");
     private final Button evaluateButton = new Button("Evaluate");
     private final Button resetButton = new Button("Reset");
     private final Button saveRunButton = new Button("Save run");
+    private final Button saveAgentButton = new Button("Save agent");
+    private final Button loadAgentButton = new Button("Load agent");
     private final ProgressBar progress = new ProgressBar(0);
     private final Label status = new Label("Untrained agent");
     private final XYChart.Series<Number, Number> rewardSeries = new XYChart.Series<>();
@@ -87,8 +93,10 @@ public class DashboardView extends BorderPane {
         pauseButton.setDisable(true);
         evaluateButton.setOnAction(e -> onEvaluate());
         resetButton.setOnAction(e -> onReset());
+        saveAgentButton.setOnAction(e -> onSaveAgent());
+        loadAgentButton.setOnAction(e -> onLoadAgent());
         HBox controls = new HBox(10, new Label("Episodes:"), episodesField, trainButton, pauseButton,
-                evaluateButton, resetButton, saveRunButton, progress);
+                evaluateButton, resetButton, saveRunButton, saveAgentButton, loadAgentButton, progress);
         controls.setPadding(new Insets(10));
         setTop(controls);
         setCenter(charts);
@@ -135,6 +143,55 @@ public class DashboardView extends BorderPane {
             }
             saver.accept(lastResults);
         });
+    }
+
+    /** Switches training to another city: the agent starts again because the old Q-table no longer fits. */
+    public void setMap(CityMap newMap) {
+        if (trainButton.isDisabled()) {
+            showError("Wait for the training to finish before changing the map.");
+            return;
+        }
+        map = newMap;
+        resetAgent();
+        clearCharts();
+        lastResults = new ArrayList<>();
+        table.getItems().clear();
+        progress.setProgress(0);
+        status.setText("New map loaded (" + newMap.getSize() + " x " + newMap.getSize() + "), agent reset");
+    }
+
+    private void onSaveAgent() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Save agent");
+        chooser.setInitialFileName("agent.ser");
+        chooser.setInitialDirectory(new File(System.getProperty("user.dir")));
+        File file = chooser.showSaveDialog(getScene().getWindow());
+        if (file == null) {
+            return;
+        }
+        try {
+            AgentStorage.save(new AgentSnapshot(agent.getQTable(), agent.getAlpha(), agent.getGamma(),
+                    agent.getEpsilon(), map.getSize()), file.toPath());
+            status.setText("Agent saved to " + file.getName());
+        } catch (StorageException e) {
+            showError(e.getMessage());
+        }
+    }
+
+    private void onLoadAgent() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Load agent");
+        chooser.setInitialDirectory(new File(System.getProperty("user.dir")));
+        File file = chooser.showOpenDialog(getScene().getWindow());
+        if (file == null) {
+            return;
+        }
+        try {
+            installSnapshot(AgentStorage.load(file.toPath(), map.getSize()));
+            table.getItems().clear();
+        } catch (StorageException e) {
+            showError(e.getMessage());
+        }
     }
 
     /** Replaces the current agent with one restored from a saved snapshot. */
@@ -288,6 +345,8 @@ public class DashboardView extends BorderPane {
         evaluateButton.setDisable(busy);
         resetButton.setDisable(busy);
         saveRunButton.setDisable(busy);
+        saveAgentButton.setDisable(busy);
+        loadAgentButton.setDisable(busy);
         pauseButton.setDisable(!busy);
     }
 

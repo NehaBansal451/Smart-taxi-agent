@@ -34,8 +34,8 @@ public class SimulationView extends BorderPane {
     private static final String RANDOM = "Random";
     private static final String LEARNED = "Q-learning";
 
-    private final GridWorld env;
-    private final CityGridView grid;
+    private GridWorld env;
+    private CityGridView grid;
     private final Supplier<Agent> learnedAgent;
     private final Agent randomAgent = new RandomAgent(new Random());
     private final ComboBox<String> agentChoice = new ComboBox<>();
@@ -70,6 +70,15 @@ public class SimulationView extends BorderPane {
         controls.setPadding(new Insets(10));
         setCenter(grid);
         setRight(controls);
+        startTrip();
+    }
+
+    /** Shows another city: builds a new environment and grid, then starts a fresh trip. */
+    public void setMap(CityMap map) {
+        stopTimeline();
+        this.env = new GridWorld(map, new Random());
+        this.grid = new CityGridView(map);
+        setCenter(grid);
         startTrip();
     }
 
