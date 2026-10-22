@@ -188,6 +188,9 @@ public class MapEditorView extends BorderPane {
             sizeSpinner.getValueFactory().setValue(current.getSize());
             status.setText("Loaded " + file.getName());
             redraw();
+            if (onApply != null) {
+                use();
+            }
         } catch (InvalidMapException | StorageException e) {
             status.setText(e.getMessage());
         }

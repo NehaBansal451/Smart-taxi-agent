@@ -56,8 +56,8 @@ public class DashboardView extends BorderPane {
     private static final int PAUSE_POLL_MS = 50;
     private static final int EVALUATION_EPISODES = 200;
 
-    private CityMap map = CityMap.defaultMap();
-    private final TextField episodesField = new TextField("5000");
+    private CityMap map = CityMap.showcaseMap();
+    private final TextField episodesField = new TextField("10000");
     private final Button trainButton = new Button("Train");
     private final Button pauseButton = new Button("Pause");
     private final Button evaluateButton = new Button("Evaluate");
@@ -76,6 +76,7 @@ public class DashboardView extends BorderPane {
     private volatile List<EpisodeResult> lastResults = new ArrayList<>();
     private QLearningAgent agent;
     private TrainingService service;
+    private Runnable trainingListener;
 
     /** Builds the dashboard with an untrained agent on the default city. */
     public DashboardView() {
@@ -122,6 +123,24 @@ public class DashboardView extends BorderPane {
         GridPane.setHgrow(chart, Priority.ALWAYS);
         GridPane.setVgrow(chart, Priority.ALWAYS);
         grid.add(chart, col, row);
+    }
+
+    /** Trains with the number in the episodes box; {@code whenDone} runs on the UI thread when training ends. */
+    public void startTraining(Runnable whenDone) {
+        if (trainButton.isDisabled()) {
+            return;
+        }
+        trainingListener = whenDone;
+        resetAgent();
+        clearCharts();
+        lastResults = new ArrayList<>();
+        table.getItems().clear();
+        onTrain();
+    }
+
+    /** The per-episode results of the last training run (empty before the first run). */
+    public List<EpisodeResult> getResults() {
+        return lastResults;
     }
 
     /** The agent that is currently being trained. */
@@ -310,6 +329,11 @@ public class DashboardView extends BorderPane {
             totalProfit += r.profit();
         }
         status.setText("Trained " + lastResults.size() + " episodes, total profit " + String.format("%.2f", totalProfit));
+        if (trainingListener != null) {
+            Runnable listener = trainingListener;
+            trainingListener = null;
+            listener.run();
+        }
     }
 
     private void onEvaluate() {

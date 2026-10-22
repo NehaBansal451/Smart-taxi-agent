@@ -14,7 +14,8 @@ public class App extends Application {
     public void start(Stage stage) {
         try {
             stage.setTitle("Smart Taxi Agent");
-            stage.setScene(new Scene(new MainView(), 1100, 760));
+            stage.setScene(new Scene(new MainView(), 1400, 800));
+            stage.setMaximized(true);
             stage.show();
         } catch (Exception e) {
             new Alert(Alert.AlertType.ERROR, "Could not start the application: " + e.getMessage()).showAndWait();
