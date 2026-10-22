@@ -50,3 +50,24 @@ To be added once the project skeleton is created.
 See CONTRIBUTING.md for our team workflow.
 
 (Test change to practise the pull request workflow.)
+
+## Setup and running
+
+Requirements: JDK 17 or newer and Apache Maven 3.9 or newer. Internet is needed only for the first build.
+
+    git clone https://github.com/NehaBansal451/Smart-taxi-agent.git
+    cd Smart-taxi-agent
+    mvn clean test
+    mvn javafx:run
+
+The app creates data/taxi.db on first run. Trained agents (*.ser), databases and logs are not committed.
+
+## Using the app
+
+- Simulation: watch the Random or Q-learning agent drive a trip. Tick Show heatmap to see learned values and arrows.
+- Training Dashboard: choose an episode count, press Train, then Evaluate to compare Random with Q-learning. Save run stores the run in the database.
+- History: browse saved runs, sort the leaderboard, edit notes, delete runs and replay a stored trip.
+
+## Project layout
+
+Packages under com.smarttaxi: model, map, env, agent, fare, service, db, storage, config, exception, util, ui.
