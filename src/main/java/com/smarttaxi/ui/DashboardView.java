@@ -57,7 +57,7 @@ public class DashboardView extends BorderPane {
     private static final int EVALUATION_EPISODES = 200;
 
     private CityMap map = CityMap.showcaseMap();
-    private final TextField episodesField = new TextField("10000");
+    private final TextField episodesField = new TextField("15000");
     private final Button trainButton = new Button("Train");
     private final Button pauseButton = new Button("Pause");
     private final Button evaluateButton = new Button("Evaluate");
@@ -223,7 +223,7 @@ public class DashboardView extends BorderPane {
     }
 
     private void resetAgent() {
-        agent = new QLearningAgent(new Random(), 0.1, 0.99, 1.0, 0.05, 0.999);
+        agent = new QLearningAgent(new Random(), 0.5, 0.99, 1.0, 0.05, 0.9995);
         buildService();
     }
 
