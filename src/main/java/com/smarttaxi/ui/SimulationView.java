@@ -698,7 +698,6 @@ public class SimulationView extends BorderPane {
             show(state);
             if (result.isDone()) {
                 grid.settle();
-                addLog("Taxi cell: env " + state.getTaxi() + ", map " + grid.getTaxi(), MUTED);
                 tripEnded = true;
                 tripSuccess = result.isSuccess();
                 stopTimeline();
