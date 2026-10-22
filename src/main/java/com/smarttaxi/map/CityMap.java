@@ -66,6 +66,17 @@ public final class CityMap implements Serializable {
                 .build();
     }
 
+    /** The 7x7 showcase city: Airport, Mall, Station and Hospital in the corners and a few buildings. */
+    public static CityMap showcaseMap() {
+        return builder(7)
+                .addWall(new Position(1, 2)).addWall(new Position(2, 2)).addWall(new Position(3, 2))
+                .addWall(new Position(5, 3)).addWall(new Position(5, 4))
+                .addWall(new Position(2, 5)).addWall(new Position(3, 5))
+                .addStop(new Position(0, 0)).addStop(new Position(0, 6))
+                .addStop(new Position(6, 0)).addStop(new Position(6, 6))
+                .build();
+    }
+
     /** Mutable helper used by the map editor and the map file reader. Throws IllegalArgumentException on bad input. */
     public static final class Builder {
         private final int size;

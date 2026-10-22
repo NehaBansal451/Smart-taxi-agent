@@ -7,17 +7,19 @@ import com.smarttaxi.exception.DataAccessException;
 import com.smarttaxi.map.MapFileHandler;
 import com.smarttaxi.service.HistoryService;
 
+import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 
 /**
- * Main window content: Simulation, Training Dashboard and History tabs.
+ * Main window content: Simulation, Training Dashboard, History and Map Editor tabs.
  * It only connects the screens; training, storage and game logic live in other packages.
  */
 public class MainView extends TabPane {
 
     private static final String DB_URL = "jdbc:sqlite:data/taxi.db";
+    private static final String THEME = "/retro-theme.css";
     private static final int SAMPLE_EVERY = 50;
     private static final double DEFAULT_ALPHA = 0.1;
     private static final double DEFAULT_GAMMA = 0.99;
@@ -46,8 +48,18 @@ public class MainView extends TabPane {
         Tab simulationTab = new Tab("Simulation", simulation);
         Tab dashboardTab = new Tab("Training Dashboard", dashboard);
         Tab historyTab = new Tab("History", historyView);
-        getTabs().addAll(simulationTab, dashboardTab, historyTab);
+        simulation.setTrainer(dashboard::startTraining);
+        simulation.setResultsSupplier(dashboard::getResults);
+        Tab mapTab = new Tab("Map Editor", new MapEditorView(dashboard.getMap(), m -> {
+            dashboard.setMap(m);
+            simulation.setMap(m);
+            simulation.setTrainer(dashboard::startTraining);
+            simulation.trainAgent();
+        }));
+        getTabs().addAll(simulationTab, dashboardTab, historyTab, mapTab);
         setTabClosingPolicy(TabClosingPolicy.UNAVAILABLE);
+        getStylesheets().add(getClass().getResource(THEME).toExternalForm());
+        Platform.runLater(simulation::trainAgent);
         getSelectionModel().selectedItemProperty().addListener((o, oldTab, newTab) -> {
             if (newTab == historyTab) {
                 historyView.refresh();
