@@ -30,3 +30,5 @@ secrets.properties
 # OS files
 .DS_Store
 Thumbs.db
+# Runtime files
+logs/
